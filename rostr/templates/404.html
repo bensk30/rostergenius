@@ -1,0 +1,13 @@
+{% extends "rostr/_base.html" %}
+
+{% block content %}
+	<h1><a href="{% url 'rostr-index' %}">Page not found</a></h1>
+
+	<p>The page you're looking for does not exists.</p>
+
+	<br/>
+
+	<p>
+		<a href="{% url 'rostr-index' %}">← Back to rostergeni.us</a>
+	</p>
+{% endblock %}

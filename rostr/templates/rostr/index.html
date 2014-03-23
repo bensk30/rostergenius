@@ -1,0 +1,206 @@
+{% extends "rostr/_base.html" %}
+{% block scripts %}
+
+	<script>
+		window._IS_CURRENTLY_SUBMITTING = false;
+
+		controlPlaceholder = function() {
+			if($(this).val().length > 0) {
+				if(!$(".placeholder").hasClass('inactive')) {
+					$(".placeholder").addClass("inactive");
+				}
+			} else {
+				$(".placeholder").removeClass("inactive");
+			}
+		}
+
+		onFormSubmit = function(e) {
+			e.preventDefault();
+			var $self = $(this);
+			var roster = $('[name=roster]').val();
+			var shiftregex = /^((?:Satur|Sun|Mon|Tues|Wednes|Thurs|Fri)day)?[a-zA-Z\s]*(\d{1,2}:\d{2}[PAM]{2})[a-zA-Z\s]*(\d{1,2}:\d{2}[PAM]{2})/mg;
+
+			if ($.trim(roster).length < 1)       return false;
+			if (window._IS_CURRENTLY_SUBMITTING) return false;
+
+			if($self.hasClass('form')) {
+				var results = roster.match(shiftregex);
+				var askforconfirmation = false;
+
+				if (results) {
+					askforconfirmation = results.length < 7 ? true : false
+				} else {
+					$('.prompt--error .msg').html("<strong>Eek.</strong> What you entered doesn't look like a roster.");
+					$('.prompt').addClass('collapse');
+					$('.prompt--error').removeClass('collapse');
+					$('.preamble').addClass('collapse');
+					return false;
+				}
+
+				if (askforconfirmation) {
+					$('.confirm--shortroster').removeClass('collapse');
+					$('.preamble').addClass('collapse');
+
+					var daycount = results.length + ' day';
+					daycount += results.length > 1 ? 's' : '';
+					$('.confirm--shortroster__daycount').text(daycount);
+					return false;
+				}
+			}
+
+			_IS_CURRENTLY_SUBMITTING = true
+			$('#submit-button').addClass('loading');
+			ga('send', 'event', 'roster', 'attempt');
+			$.ajax({
+				url: '/parse/',
+				type: 'POST',
+				data: $('form').serialize(),
+				success: onSubmissionSuccess,
+				error: onSubmissionError,
+				complete: onSubmissionComplete
+			})
+			return false;
+		}
+
+		onSubmissionSuccess = function(data, status, xhr){
+			window.location = "/download/" + data.accesstoken + "/";
+			ga('send', 'event', 'roster', 'success');
+			$('.prompt').addClass('collapse');
+			$('.preamble').removeClass('collapse');
+			$('.prompt--error .msg').html(' ');
+		}
+
+		onSubmissionError = function(xhr, type) {
+			ga('send', 'event', 'roster', 'error');
+
+			if(xhr.status === 400) {
+				// The parser will return 400 if we detected an error in the input
+				var resp = JSON.parse(xhr.response);
+				var errorHTML = resp.message
+			} else {
+				// Otherwise, errors of other types are unforseen.
+				var errorHTML = '<strong>Eeek.</strong> An unexpected error has occured. There may have been a server error, or a problem interpreting your input.'
+
+				if(xhr.responseText.length > 20) {
+					var pythonException = xhr.responseText.split('\n\n')[0]
+					pythonException = pythonException.replace(/(\r\n|\n|\r)/gm,"")
+					errorHTML += ' (Server error: ' + pythonException + ')';
+				}
+			}
+
+			$('.prompt--error .msg').html(errorHTML);
+			setTimeout(function(){
+				$('.prompt').addClass('collapse');
+				$('.prompt--error').removeClass('collapse');
+				$('.preamble').addClass('collapse');
+			}, 100)
+		}
+
+		onSubmissionComplete = function(xhr, status) {
+			$('#submit-button').removeClass('loading');
+			_IS_CURRENTLY_SUBMITTING = false;
+		}
+
+		rememberField = function(ev) {
+			var target = $(ev.target);
+			localStorage.setItem(target.attr('data-ls-key'), target.val())
+		}
+
+		loadRemberedField = function(){
+			target = $(this)
+			if(localStorage.getItem(target.attr('data-ls-key')) !== null) {
+				target.val(localStorage.getItem(target.attr('data-ls-key')));
+			}
+		}
+
+		checkLocationField = function(){
+			$this = $('[name=location]');
+			var result = /\b((?:R|r)\d{3})\b/.exec($this.val())
+			if(result) {
+				$this.addClass('special');
+			} else {
+				$this.removeClass('special');
+			}
+		}
+
+		Zepto(function($){
+			if($('.rosterinput').val().length > 1) {
+				$('.placeholder').addClass('inactive')
+			} else {
+				$('.rosterinput').on('input', controlPlaceholder);
+			}
+
+			$('._save-in-ls').on('input', rememberField);
+			$('._save-in-ls').each(loadRemberedField)
+			$('form').submit(onFormSubmit)
+			$('#confirm-roster').click(onFormSubmit)
+
+			$('[name=location]').on('input', checkLocationField);
+			$('.bmark').click(function(){ return false; })
+
+			// $('[data-shrink]').focus(function(){
+			// 	$($(this).attr('data-shrink')).addClass('shrunk')
+			// 	$(this).addClass('expanded')
+			// })
+			// $('[data-shrink]').blur(function(){
+			// 	$($(this).attr('data-shrink')).removeClass('shrunk')
+			// 	$(this).removeClass('expanded')
+			// })
+
+			checkLocationField()
+
+		})
+	</script>
+{% endblock %}
+
+{% block content %}
+	<h1><a href="{% url 'rostr.views.index' %}">roster genius</a></h1>
+
+	<div class="preamble">
+		<p>Want your schedule on your Mac or iPhone? Convert your roster and have it synced to all your devices using iCloud.</p>
+
+		<div class="install-bmark desktoponly">
+			<a class="bmark" href="{{ bookmarklet }}">✚ Roster Genius</a>
+			<div class="bmark-info">Drag the bookmarklet into your favourites bar.</div>
+		</div>
+
+		<div class="install-bmark mobileonly">
+			<div class="bmark-info">Visit Roster Genius on a desktop to add the bookmarklet. You can use it on here once iCloud syncs it over.</div>
+		</div>
+
+		<p>Use the bookmarklet when viewing your schedule or copy your schedule from your page into the box below.</p>
+	</div>
+
+	<div class="prompt prompt--error animate collapse">
+		<p class="msg"></p>
+		<p class="common">For best results, try copying your entire schedule from myPage with <strong>&#8984;A</strong>, <strong>&#8984;C</strong>, and paste it below with <strong>&#8984;V</strong>. Roster Genius supports English only.</p>
+		<img class="instructiongif" src="{{ STATIC_URL }}instructions.gif" />
+	</div>
+
+	<div class="prompt prompt--warning animate confirm--shortroster collapse">
+		<p class="msg">It doesn't look like you copied your full roster. Only found <strong class='confirm--shortroster__daycount'></strong>.</p>
+		<p class="common">For best results, try copying your entire schedule from myPage with <strong>&#8984;A</strong>, <strong>&#8984;C</strong>, and paste it below with <strong>&#8984;V</strong>.</p>
+		<div class="centered">
+			<input type="submit" value="Continue anyway" class="button" id="confirm-roster"/>
+		</div>
+	</div>
+
+	<form class="form" method="POST" action="./"> {% csrf_token %}
+		<div class="posrel">
+			<textarea class="rosterinput" name="roster"></textarea>
+			<div class="placeholder">Schedule begins Nov 23, 2013 		 Start				Finish
+Saturday	 	00:00AM	                     	00:00AM
+Sunday	 	00:00AM	                     	00:00AM
+Monday	 	9:00AM	                     	5:00PM
+Tuesday	 	10:00AM	                     	6:30PM
+Wednesday	 	11:30AM	                     	5:30PM
+Thursday	 	7:00AM	                     	3:30PM
+Friday	 	12:30AM	                     	8:00PM
+			</div>
+		</div>
+
+		<input placeholder="title" name="title" type="text" data-shrink="[name=location]" data-ls-key="title" class="text _save-in-ls">
+		<input placeholder="location" name="location" type="text"  data-shrink="[name=title]" value="{% if storenum %}{{storenum}}{% endif %}" data-ls-key="location" class="text _save-in-ls">
+		<input type="submit" class="button" id="submit-button"/>
+	</form>
+{% endblock %}

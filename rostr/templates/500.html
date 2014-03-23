@@ -1,0 +1,13 @@
+{% extends "rostr/_base.html" %}
+
+{% block content %}
+	<h1><a href="{% url 'rostr-index' %}">Eek. An error</a></h1>
+
+	<p>A very unexpected error occured. This has been logged and will be resolved shortly. Please try again later.</p>
+
+	<br/>
+
+	<p>
+		<a href="{% url 'rostr-index' %}">← Back to rostergeni.us</a>
+	</p>
+{% endblock %}

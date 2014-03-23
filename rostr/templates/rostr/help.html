@@ -1,0 +1,22 @@
+{% extends "rostr/_base.html" %}
+
+{% block bodyclass %} wrapper--stats {% endblock %}
+
+{% block content %}
+	<h1><a href="{% url 'rostr-index' %}">roster genius <em>help</em></a></h1>
+
+	<h2>Roster Genius</h2>
+	<p>
+		Roster Genius lets you download your work schedule into a Mac and iOS compatible .ics file. Simply navigate to your myPage schedule and copy from 'Schedule begins' down to the last time. If you have difficulty with this, just use <strong title='Command + A'>&#8984; A</strong> to select everything.
+	</p>
+	<p class='inlineimg'><img class="instructiongif" src="{{ STATIC_URL }}instructions.gif" /></p>
+	<p>
+		Paste your schedule into the field. You can set the calendar event title and location fields to customise how they appear in your calendar. Enter your store number (e.g. R095) in the location field and it will be replaced with the store name and address. These will be remembered locally on your computer for next time you visit Roster Genius.
+	</p>
+
+	<br/>
+
+	<p>
+		<a href="{% url 'rostr-index' %}">← Back to rostergeni.us</a>
+	</p>
+{% endblock %}
