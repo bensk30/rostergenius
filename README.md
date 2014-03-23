@@ -4,7 +4,9 @@ It is built in Python using Django, with a small bit of Javascript for the bookm
 
 After shutting rostergeni.us down, I thought it would be best to release it's source code for others to use or run. The code isnt the best quality, nor is it the cleanest, but it's something. I don't intend on supporting or updating it much, but any pull requests are welcome.
 
-To run this locally on your own computer, you'll first need a bit of setup (you might be able to skip this) from Terminal.
+## Getting started
+
+To run this locally on your own computer, you'll first need a bit of setup (if you've done this before, feel free to skip) from Terminal:
 
 ```
 cd ~
